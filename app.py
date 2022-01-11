@@ -1,11 +1,13 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
 app = Flask(__name__)
+cors = CORS(app)
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
+app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-
 import models
 models.db.init_app(app)
 
@@ -14,52 +16,78 @@ models.db.init_app(app)
 # app.route('/', methods=["GET"])(root)
 
 # signup user
+@cross_origin()
 def signup():
     user = models.User(
         email=request.json["email"],
         password=request.json["password"]
     )
     models.db.session.add(user)
-    models.db.commit()
+    models.db.session.commit()
     return {
         "user": user.to_json()
     }
-app.route('/', methods=["POST"])(signup)
+app.route('/users/signup', methods=["POST"])(signup)
 
 # login user
 def login():
-    return 'ok'
-app.route('/', methods=["POST"])(login)
+    user = models.User.query.filter_by(email=request.json["email"]).first()
+    if not user:
+        return {
+            "message": "User not found"
+        }, 404
+    return { 
+        "user": user.to_json() }
+app.route('/users/login', methods=["POST"])(login)
 
 # verify user
 def verify():
-    return 'ok'
-app.route('/', methods=["POST"])(verify)
+    user = models.User.query.filter_by(id=request.headers["Authorization"]).first()
+    if not user:
+        return {
+            "message": "user not found"
+        }, 404
+    if user:
+        return { "user": user.to_json() }
+app.route('/users/verify', methods=["GET"])(verify)
 
 # update user's bio
-def update():
-    return 'ok'
-app.route('/', methods=["PUT"])(update)
-
-# search shows and series
-def search():
-    return 'ok'
-app.route('/', methods=["GET"])(search)
+def update(id):
+    user = models.User.query.filter_by(id=id).first()
+    bio = request.json["bio"]
+    user.bio = bio
+    models.db.session.add(user)
+    models.db.session.commit()
+    return { "user": user.to_json() }
+app.route('/users/<int:id>', methods=["PUT"])(update)
 
 #save listing to profile
-def save():
-    return 'ok'
-app.route('/', methods=["POST"])(save)
-
-# move listing to history page
-def watch():
-    return 'ok'
-app.route('/', methods=["POST"])(watch)
+def save(id):
+    user = models.User.query.filter_by(id=id).first()
+    listing = models.Listing(
+        title=request.json["title"],
+        year=request.json["year"],
+        type=request.json["type"]
+    )
+    user.listings.append(listing)
+    # models.db.session.add(user)
+    models.db.session.add(listing)
+    models.db.session.commit()
+    return {
+        "user": user.to_json(),
+        "listing": listing.to_json()
+    }
+app.route('/listing/save/<int:id>', methods=["POST"])(save)
 
 # remove listing from profile
-def remove():
-    return 'ok'
-app.route('/', methods=["DELETE"])(remove)
+def remove(id):
+    listing = models.Listing.queryu.filter_by(id=id).first()
+    models.db.session.delete(listing)
+    models.db.session.commit()
+    return {
+        "listing": listing.to_json()
+    }
+app.route('/listing/remove/<int:id>', methods=["DELETE"])(remove)
 
 
 if __name__ == '__main__':

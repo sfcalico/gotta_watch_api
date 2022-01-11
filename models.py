@@ -7,10 +7,13 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String, nullable=False, unique=True)
     password = db.Column(db.String)
+    bio = db.Column(db.String)
+    listings = db.relationship('Listing', secondary="user_listings")
     def to_json(self):
         return {
             "id": self.id,
-            "email": self.email
+            "email": self.email,
+            "bio": self.bio
         }
 
 class Listing(db.Model):
@@ -18,9 +21,10 @@ class Listing(db.Model):
     __tablename__ = 'listings'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String)
-    year = db.Column(db.Integer)
+    year = db.Column(db.String)
     type = db.Column(db.String)
     poster = db.Column(db.String)
+    users = db.relationship('User', secondary="user_listings")
     def to_json(self):
         return {
             "id": self.id,
