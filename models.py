@@ -25,6 +25,7 @@ class Listing(db.Model):
     type = db.Column(db.String)
     user_id = db.Column(db.Integer)
     poster = db.Column(db.String)
+    watched = db.Column(db.Boolean)
     users = db.relationship('User', secondary="user_listings")
     def to_json(self):
         return {
@@ -33,7 +34,8 @@ class Listing(db.Model):
             "year": self.year,
             "type": self.type,
             "poster": self.poster,
-            "user_id": self.user_id
+            "user_id": self.user_id,
+            "watched": self.watched 
         }
 
 class User_Listings(db.Model):

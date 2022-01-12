@@ -15,7 +15,7 @@ models.db.init_app(app)
 #     return 'ok'
 # app.route('/', methods=["GET"])(root)
 
-# signup user
+## Signup user
 @cross_origin()
 def signup():
     user = models.User(
@@ -29,7 +29,7 @@ def signup():
     }
 app.route('/users/signup', methods=["POST"])(signup)
 
-# login user
+## Login user
 def login():
     user = models.User.query.filter_by(email=request.json["email"]).first()
     if not user:
@@ -40,7 +40,7 @@ def login():
         "user": user.to_json() }
 app.route('/users/login', methods=["POST"])(login)
 
-# verify user
+## Verify user
 def verify():
     user = models.User.query.filter_by(id=request.headers["Authorization"]).first()
     if not user:
@@ -51,7 +51,7 @@ def verify():
         return { "user": user.to_json() }
 app.route('/users/verify', methods=["GET"])(verify)
 
-# update user's bio
+## Update user's bio
 def update(id):
     user = models.User.query.filter_by(id=id).first()
     bio = request.json["bio"]
@@ -61,14 +61,15 @@ def update(id):
     return { "user": user.to_json() }
 app.route('/users/<int:id>', methods=["PUT"])(update)
 
-#save listing to profile
+## Save listing to profile
 def save(id):
     user = models.User.query.filter_by(id=id).first()
     listing = models.Listing(
         title=request.json["title"],
         year=request.json["year"],
         type=request.json["type"],
-        user_id=request.json["user_id"]
+        user_id=request.json["user_id"],
+        watched=False
     )
     user.listings.append(listing)
     models.db.session.add(user)
@@ -81,9 +82,9 @@ def save(id):
     }
 app.route('/listings/save/<int:id>', methods=["POST"])(save)
 
-# remove listing from profile
-def remove(id):
-    listing = models.Listing.query.filter_by(id=id).first()
+## remove listing from profile
+def remove(id, user_id):
+    listing = models.Listing.query.filter_by(id=id).filter_by(user_id=user_id).first()
     models.db.session.delete(listing)
     models.db.session.commit()
     return {
@@ -91,19 +92,48 @@ def remove(id):
     }
 app.route('/listings/remove/<int:id>', methods=["DELETE"])(remove)
 
+## Series to watch page
 def see_shows(id):
-    listings = models.Listing.query.filter_by(user_id=id).filter_by(type="series").all()
+    listings = models.Listing.query.filter_by(user_id=id).filter_by(type="series").filter_by(watched=False).all()
     return {
         "listings": [l.to_json() for l in listings]
     }
 app.route('/listings/users/<int:id>/series', methods=["GET"])(see_shows)
 
+## Movies to watch page
 def see_movies(id):
-    listings = models.Listing.query.filter_by(user_id=id).filter_by(type="movie").all()
+    listings = models.Listing.query.filter_by(user_id=id).filter_by(type="movie").filter_by(watched=False).all()
     return {
         "listings": [l.to_json() for l in listings]
     }
 app.route('/listings/users/<int:id>/movies', methods=["GET"])(see_movies)
+
+## Push title over to Watched page
+def have_seen(id):
+    seen = models.Listing.query.filter_by(id=id).first()
+    seen.watched = True
+    models.db.session.add(seen)
+    models.db.session.commit()
+    return {
+        "listing": seen.to_json()
+    }
+app.route('/listings/users/<int:id>/seen', methods=["PUT"])(have_seen)
+
+## Watched page series
+def series_history(id):
+    series = models.Listing.query.filter_by(user_id=id).filter_by(type="series").filter_by(watched=True).all()
+    return {
+        "series": [s.to_json() for s in series]
+    }
+app.route('/listings/users/history/<int:id>/series')(series_history)
+
+## Watched page movies
+def movies_history(id):
+    movies = models.Listing.query.filter_by(user_id=id).filter_by(type="movie").filter_by(watched=True).all()
+    return {
+        "movies": [m.to_json() for m in movies]
+    }
+app.route('/listings/users/history/<int:id>/movies')(movies_history)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
