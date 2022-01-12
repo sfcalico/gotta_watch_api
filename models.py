@@ -23,6 +23,7 @@ class Listing(db.Model):
     title = db.Column(db.String)
     year = db.Column(db.String)
     type = db.Column(db.String)
+    user_id = db.Column(db.Integer)
     poster = db.Column(db.String)
     users = db.relationship('User', secondary="user_listings")
     def to_json(self):
@@ -31,7 +32,8 @@ class Listing(db.Model):
             "title": self.title,
             "year": self.year,
             "type": self.type,
-            "poster": self.poster
+            "poster": self.poster,
+            "user_id": self.user_id
         }
 
 class User_Listings(db.Model):

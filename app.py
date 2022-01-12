@@ -67,28 +67,43 @@ def save(id):
     listing = models.Listing(
         title=request.json["title"],
         year=request.json["year"],
-        type=request.json["type"]
+        type=request.json["type"],
+        user_id=request.json["user_id"]
     )
     user.listings.append(listing)
-    # models.db.session.add(user)
+    models.db.session.add(user)
     models.db.session.add(listing)
+    models.db.session.add(user)
     models.db.session.commit()
     return {
         "user": user.to_json(),
         "listing": listing.to_json()
     }
-app.route('/listing/save/<int:id>', methods=["POST"])(save)
+app.route('/listings/save/<int:id>', methods=["POST"])(save)
 
 # remove listing from profile
 def remove(id):
-    listing = models.Listing.queryu.filter_by(id=id).first()
+    listing = models.Listing.query.filter_by(id=id).first()
     models.db.session.delete(listing)
     models.db.session.commit()
     return {
         "listing": listing.to_json()
     }
-app.route('/listing/remove/<int:id>', methods=["DELETE"])(remove)
+app.route('/listings/remove/<int:id>', methods=["DELETE"])(remove)
 
+def see_shows(id):
+    listings = models.Listing.query.filter_by(user_id=id).filter_by(type="series").all()
+    return {
+        "listings": [l.to_json() for l in listings]
+    }
+app.route('/listings/users/<int:id>/series', methods=["GET"])(see_shows)
+
+def see_movies(id):
+    listings = models.Listing.query.filter_by(user_id=id).filter_by(type="movie").all()
+    return {
+        "listings": [l.to_json() for l in listings]
+    }
+app.route('/listings/users/<int:id>/movies', methods=["GET"])(see_movies)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
