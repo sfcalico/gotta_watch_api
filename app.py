@@ -51,15 +51,15 @@ def verify():
         return { "user": user.to_json() }
 app.route('/users/verify', methods=["GET"])(verify)
 
-## Update user's bio
-def update(id):
-    user = models.User.query.filter_by(id=id).first()
-    bio = request.json["bio"]
-    user.bio = bio
-    models.db.session.add(user)
-    models.db.session.commit()
-    return { "user": user.to_json() }
-app.route('/users/<int:id>', methods=["PUT"])(update)
+## Update user's bio ## maybe use for stretch goals
+# def update(id):
+#     user = models.User.query.filter_by(id=id).first()
+#     bio = request.json["bio"]
+#     user.bio = bio
+#     models.db.session.add(user)
+#     models.db.session.commit()
+#     return { "user": user.to_json() }
+# app.route('/users/<int:id>', methods=["PUT"])(update)
 
 ## Save listing to profile
 def save(id):
@@ -68,6 +68,7 @@ def save(id):
         title=request.json["title"],
         year=request.json["year"],
         type=request.json["type"],
+        poster=request.json["poster"],
         user_id=request.json["user_id"],
         watched=False
     )
@@ -90,7 +91,7 @@ def remove(id, user_id):
     return {
         "listing": listing.to_json()
     }
-app.route('/listings/remove/<int:id>', methods=["DELETE"])(remove)
+app.route('/listings/remove/<int:id>/<int:user_id>', methods=["DELETE"])(remove)
 
 ## Series to watch page
 def see_shows(id):
@@ -108,7 +109,7 @@ def see_movies(id):
     }
 app.route('/listings/users/<int:id>/movies', methods=["GET"])(see_movies)
 
-## Push title over to Watched page
+## Push title to Watched page
 def have_seen(id):
     seen = models.Listing.query.filter_by(id=id).first()
     seen.watched = True
@@ -119,7 +120,7 @@ def have_seen(id):
     }
 app.route('/listings/users/<int:id>/seen', methods=["PUT"])(have_seen)
 
-## Watched page series
+## Watched page, series
 def series_history(id):
     series = models.Listing.query.filter_by(user_id=id).filter_by(type="series").filter_by(watched=True).all()
     return {
@@ -127,13 +128,24 @@ def series_history(id):
     }
 app.route('/listings/users/history/<int:id>/series')(series_history)
 
-## Watched page movies
+## Watched page, movies
 def movies_history(id):
     movies = models.Listing.query.filter_by(user_id=id).filter_by(type="movie").filter_by(watched=True).all()
     return {
         "movies": [m.to_json() for m in movies]
     }
 app.route('/listings/users/history/<int:id>/movies')(movies_history)
+
+## Push title back to saved pages
+def not_seen(id):
+    seen = models.Listing.query.filter_by(id=id).first()
+    seen.watched = False
+    models.db.session.add(seen)
+    models.db.session.commit()
+    return {
+        "listing": seen.to_json()
+    }
+app.route('/listings/users/<int:id>/notyet', methods=["PUT"])(not_seen)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
