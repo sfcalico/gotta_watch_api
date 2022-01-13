@@ -11,9 +11,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 import models
 models.db.init_app(app)
 
-# def root():
-#     return 'ok'
-# app.route('/', methods=["GET"])(root)
+def root():
+    return 'ok'
+app.route('/', methods=["GET"])(root)
 
 ## Signup user
 @cross_origin()
